@@ -1,0 +1,23 @@
+sudo: required
+services:
+  - docker
+
+before_install:
+  - docker build -t doo7a/react-test -f ./client/Dockerfile.dev ./client
+
+script:
+  - docker run doo7a/react-test npm test -- --coverage #npm test overrides the defualt startup command, by default npm test enters the watch mode which means that it will never exit, so we add -- --coverage
+
+after_success:
+  - docker build -t doo7a/react-client ./client # no need to specify the docker file
+  - docker build -t doo7a/react-server ./server
+  - docker build -t doo7a/react-worker ./worker
+  - docker build -t doo7a/react-nginx ./nginx
+  #login to docker CLI, we get the environment variable DOCKER_PASSWORD from travis-cli at our github repository and send this password to the next command
+  # which says docker login with the id of our docker and wait for password to come from the first command
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" -- password-stdin
+  # pushing the images to docker hub
+  - docker push doo7a/react-client
+  - docker push doo7a/react-server
+  - docker push doo7a/react-worker
+  - docker push doo7a/react-nginx
