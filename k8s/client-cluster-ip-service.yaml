@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-cluster-ip-service
+spec:
+  type: ClusterIP
+  selector: # selects the pods with this key value pair
+    component: web
+  ports:
+    - port: 3000 # any other pod that wants to access the pod we are serving(component: web) must access it by visiting this port
+      targetPort: 3000 # the containerPort of the pod we are serving(component: web)

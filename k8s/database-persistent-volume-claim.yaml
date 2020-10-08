@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: PersistentVolumeClaim # asks kubernetes for resources, if on local machine kubernetes will get a storage from hard disk, if on cloud platform like AWS it will ask AWS block store
+metadata:
+  name: database-persistent-volume-claim
+spec:
+  accessModes:
+    - ReadWriteOnce # can be used by a single node
+  resources:
+    requests:
+      storage: 2Gi
