@@ -1,0 +1,59 @@
+sudo: required
+services:
+  - docker
+# specifiny SHA as an environment variable to call it in the deploy.sh file with just the word SHA
+env:
+  global:
+    - SHA=$(git rev-parse HEAD)
+    # it will configure google cloud cli and make sure that it doesn't display any prompts that requires user input
+    # like if google cloud cli asks the user if he's sure he want to do this press y|n. we want to prevent this action
+  # - CLOUDSDK_CORE_DISABLE_PROMPTS=1
+before_install:
+  # we need travis-ci CLI, in order to do that we need Ruby to be installed. instead of doing so, we will make a docker image of ruby installed version 2.4
+  # in the folder directory: docker run -it -v ${pwd}:/app ruby:2.4 sh
+  # gem install travis  ... this will install travis-ci CLI
+  # then we login to our github account using => travis login
+  # we copy the file that's downloaded from IAM to our working direcotory(complex) and rename it to service-account.json
+  # use command : travis encrypt-file service-account.json -r (github username)/(name of the repository)
+  # we add the outcoming command here
+
+  # service-account.json is now encrypted in complex direcotory, Delete the original file service-account.json
+  # install google cloud sdk and and then install it locally on the instance that's assigned by travis-ci
+  #- curl https://sdk.cloud.google.com | bash > /dev/null;
+  # looks at the default install directory of google cloud sdk and then source the file path.bash.inc, this means that there's some configuration that's going to modify our shell inside travis-ci inside this file, and we will apply this additional configuarion inside the source command
+  #- source $HOME/google-cloud-sdk/path.bash.inc
+  # we make sure that google cloud will install kubectl command to manipulate the kubernetes cluster
+  # install and update kubectl inside our travis environment
+  #- gcloud components update kubectl
+  # works the same as IAM in AWS, we give access to a user by activating a service account and provide a set of credentials inside service-account.json
+  #- gcloud auth activate-service-account --key-file service-account.json
+  # we specify the name of the project in the google cloud
+
+  #######
+  # these following commands will be applied to google cloud platform too
+  # in the google cloud platform we need to specify the secret of pgpassword again but we have to configure these three commands first to the cluster
+  # - gcloud config set project (id of the project in gcloud)
+  # we specify the zone of the project
+  # gcloud config set compute/zone (location of zone)
+  # tell gcloud the name of cluster
+  # gcloud container clusters get-credentials ( name of cluster)
+  ## after that we apply in google cloud platform -> kubectl create secret generic pgpassword --from-literal PGPASSWORD=(the password)
+  # note: use helm to install ingress-nginx in a production environment
+  #####
+
+  # login to docker cli
+  # $DOCKER_PASSWORD and $DOCKER_USERNAME are environment variables in the travis-ci github repository
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  # build tests
+  - docker build -t doo7a/client-test -f ./client/Dockerfile.dev ./client
+
+script:
+  # run tests, npm test will override the default command which is starting node server and start test
+  # -- --coverage will end the options menu of testing
+  - docker run doo7a/client-test npm test -- --coverage
+
+deploy:
+  provider: script
+  script: bash ./deploy.sh
+  on:
+    branch: master
